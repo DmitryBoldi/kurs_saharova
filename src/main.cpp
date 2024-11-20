@@ -3,6 +3,7 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
+#include <libopencm3/cm3/nvic.h>
 
 
 void uart_setup(void) {
@@ -26,13 +27,13 @@ void uart_setup(void) {
     usart_set_flow_control(USART2, USART_FLOWCONTROL_NONE); // Без управления потоком
 
     usart_enable_rx_interrupt(USART2);
-    nvic_enable_irq(NVIC_USART2_EXTI26_IRQ);
+    nvic_enable_irq(NVIC_USART2_IRQ);
     // Включаем USART2
     usart_enable(USART2);
 }
 
 
-uint8_t usart_receive(void) {
+void usart_transmit(void) {
     // Ожидаем, пока данные не будут доступны
 
 usart_send_blocking(USART2, 0x55);
@@ -54,11 +55,11 @@ usart_send_blocking(USART2, '\r');
 int main(void)  {
 
     uart_setup();
-    usart_receive();
+    usart_transmit();
     rcc_periph_clock_enable(RCC_GPIOE);
     gpio_mode_setup(GPIOE, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO15);
     
-    usart_receive();
+    
 
     while (1) {
 

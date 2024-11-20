@@ -32,7 +32,7 @@ set_target_properties(${PROJECT_NAME}
 )
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-     COMMAND cp ${PROJECT_NAME} ../firmware
+     COMMAND cp ${PROJECT_NAME} firmware
 )
 
 #================================================================================
