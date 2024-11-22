@@ -6,6 +6,7 @@ set(CMAKE_TOOLCHAIN_FILE cmake/arm-none-eabi-gcc.cmake)
 
 #================================================================================
 project(mk_23_kr-master LANGUAGES C CXX ASM)
+# project(UART_ringbuf LANGUAGES CXX C ASM)
 set(DEVICE stm32f407vg)
 # set(DEVICE stm32f303vc)
 # set(DEVICE stm32f103c8)
@@ -17,6 +18,7 @@ include(libopencm3)
 #================================================================================
 add_executable(${PROJECT_NAME} 
    src/main.cpp 
+   ring_buffer/ring_buf.cpp
    )
 target_link_libraries(${PROJECT_NAME}
      PRIVATE libopencm3 )

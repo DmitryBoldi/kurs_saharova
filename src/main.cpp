@@ -1,9 +1,38 @@
-
+#include "ring_buffer/ring_buf.hpp"
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
+#include <libopencm3/stm32/timer.h>
 #include <libopencm3/cm3/nvic.h>
+
+
+uint8_t c{'a'};
+
+ring_buf buf; 
+
+
+
+void usart2_exti26_isr(void){
+
+USART_RQR(USART2) &= ~(USART_RQR_RXFRQ);
+
+//static uint8_t c = static_cast<uint8_t>(usart_recv(USART2));
+
+if (buf.not_full()){
+        buf.put(static_cast<uint8_t>(usart_recv(USART2)));
+}
+
+gpio_toggle (GPIOE, GPIO14);
+    //Очистить флаг запроса прерывания
+    //Сохранить принятый символ в переменную
+    //Переключить светодиод 
+ }
+
+
+void bufer(void){
+
+}
 
 
 void uart_setup(void) {
@@ -48,24 +77,47 @@ usart_send_blocking(USART2, '\r');
 }
 
 
+void setup_LED(void){
+    rcc_periph_clock_enable(RCC_GPIOD);
+    gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO15| GPIO14|  GPIO13| GPIO12);
+    gpio_set(GPIOD, GPIO15|GPIO12);
+}
 
+
+
+void led_blink(uint32_t tome) {
+      gpio_clear(GPIOD, GPIO15); 
+        for (volatile uint32_t i = 0; i < tome*1000; i++); 
+        gpio_set(GPIOD, GPIO15);
+        for (volatile uint32_t i = 0; i < tome*1000; i++);     // Задержка
+}
+
+
+void loop(){
+if (!buf.empty()){c = buf.get();}
+usart_send_blocking (USART2 , c);
+for (volatile uint32_t i=0;i<20000;i++);
+gpio_toggle(GPIOE, GPIO9);
+
+}
 
 
 
 int main(void)  {
 
     uart_setup();
+    setup_LED();
     usart_transmit();
-    rcc_periph_clock_enable(RCC_GPIOE);
-    gpio_mode_setup(GPIOE, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO15);
     
-    
+
+
+  
+
 
     while (1) {
-
-         gpio_toggle(GPIOE, GPIO15);
-        // Отправка полученных данных обратно
-        for (volatile int i = 0; i < 1000000; i++);
+       loop();
+      led_blink(400);
+         
     }
 }
 
