@@ -27,23 +27,16 @@ Ring_buffer buf;
 // gpio_toggle(GPIOE, GPIO11); — переключает состояние светодиода, подключенного к порту GPIOE, пину GPIO11. 
 // Это может использоваться для индикации поступления данных.
 
-void usart2_exti26_isr(void){
 
-    USART_SR(USART2) &= ~(USART_SR_RXNE);
-
-    read_data_UART();
-    for (volatile uint32_t i = 0; i < 20000; i++); 
-    gpio_toggle (GPIOD, GPIO12);
-
-
-}  
- 
 void read_data_UART(void){
 
     uint8_t data = static_cast<uint8_t>(usart_recv (USART2));
     buf.put(data);
-     usart_send_blocking(USART2, data );
+    for (volatile uint32_t i = 0; i < 20000; i++); 
+
     gpio_toggle (GPIOD, GPIO14);
+
+    
 
 
 }
@@ -144,7 +137,6 @@ int main(void)  {
 
 
      //loop();
-     usart2_exti26_isr();
      // led_blink_15(1500);
       //led_blink_14(750);
     //  led_blink_13(500);
