@@ -11,7 +11,7 @@
             "runToEntryPoint": "main",
             "servertype": "openocd",
             "svdFile": "${userHome}/svd/stm32f407.svd",
-            "gdbPath": "gdb-multiarch",
+            "gdbPath": "/usr/bin/gdb-multiarch",
             "configFiles": [
                 "/usr/share/openocd/scripts/board/stm32f4discovery.cfg"
             ]
