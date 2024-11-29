@@ -1,24 +1,68 @@
-#include <libopencm3/stm32/f4/rcc.h>
-#include <libopencm3/stm32/f4/gpio.h>
-#include <libopencm3/stm32/f4/timer.h>
-#include <libopencm3/stm32/f4/nvic.h>
-#include <libopencm3/stm32/f4/usart.h>
+#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/usart.h>
+#include <libopencm3/cm3/nvic.h>
 #include <stdio.h>
 
-volatile uint32_t pulse_width = 0;
+#define BUFFER_SIZE 10
+#define char_SIZE 30
 
-void tim2_isr(void) {
-    if (TIM_SR(TIM2) & TIM_SR_CC1IF) {
-        pulse_width = TIM_CCR1(TIM2);
-        TIM_SR(TIM2) &= ~TIM_SR_CC1IF;
+char number_buffer[char_SIZE];
+
+void read_data_UART(uint8_t *size_buffer, uint32_t *index);
+void usart_send_string(const char *str);
+
+void read_data_UART(uint8_t *size_buffer, uint32_t *index) {
+    // Увеличен размер буфера для сообщений
+
+    if (*index < BUFFER_SIZE) { // Проверяем, не превышает ли индекс размер буфера
+        size_buffer[*index] = usart_recv(USART2); // Читаем байт из USART
+        (*index)++; // Увеличиваем индекс
+
+        gpio_toggle(GPIOD,GPIO14);
+        for (volatile int i = 0; i < 1000000; i++); // Задержка
+    } else {
+        // Обработка переполнения буфера
+        snprintf(number_buffer, sizeof(number_buffer), "Error: Buffer full at index: ", *index);
+        usart_send_string(number_buffer);
+        gpio_toggle(GPIOD,GPIO15);
+        for (volatile int i = 0; i < 1000000; i++); // Задержка
     }
 }
 
-void usart_setup(void) {
+// Функция для отправки строки по USART
+void usart_send_string(const char *str) {
+    while (*str) {
+        usart_send(USART3, *str++); // Отправка каждого символа
+    }
+}
+
+void usart_send_buffer(uint8_t *buffer, uint32_t size) {
+
+    
+    // for (uint32_t i = 0; i < size; i++) {
+       while(uint32_t i=0 < size){
+        // if (i < BUFFER_SIZE ){
+        usart_send(USART3, buffer[i]); // Отправка каждого байта
+        gpio_toggle(GPIOD,GPIO12);
+        for (volatile int i = 0; i < 1000000; i++);
+        }
+        else {
+
+            gpio_toggle(GPIOD,GPIO13);
+            break
+        }
+        
+
+
+    }
+
+
+void usart2_setup(void) {
     // Включаем тактирование для GPIOA и USART2
     rcc_periph_clock_enable(RCC_GPIOA);
     rcc_periph_clock_enable(RCC_USART2);
-
+    
     // Настраиваем пины PA2 (TX) и PA3 (RX) для USART2
     gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2 | GPIO3);
     gpio_set_af(GPIOA, GPIO_AF7, GPIO2); // TX
@@ -33,61 +77,67 @@ void usart_setup(void) {
     usart_set_flow_control(USART2, USART_FLOWCONTROL_NONE); // Без управления потоком
 
     usart_enable_rx_interrupt(USART2);
-    nvic_enable_irq(NVIC_USART2_IRQ);
-    
+    nvic_enable_irq(NVIC_USART2_IRQ); // Включаем прерывание для USART2
+
     // Включаем USART2
     usart_enable(USART2);
 }
 
-void usart_send_string(const char *str) {
-    while (*str) {
-        while (!(USART_SR(USART2) & USART_SR_TXE)); // Ждем, пока TXE не станет 1
-        USART_DR(USART2) = *str++;  // Отправка символа
-    }
 
-    gpio_toggle(GPIOD, GPIO15); // Настройка мигания
+void usart3_setup(void) {
+ // Включаем тактирование для GPIOB и USART3
+    rcc_periph_clock_enable(RCC_GPIOB);
+    rcc_periph_clock_enable(RCC_USART3);
+    
+
+
+      // Настраиваем пины PB10 (TX) и PB11 (RX) для USART2
+    gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO10 | GPIO11);
+    gpio_set_af(GPIOB, GPIO_AF7, GPIO10); // TX
+    gpio_set_af(GPIOB, GPIO_AF7, GPIO11); // RX
+
+    // Настраиваем USART3
+    usart_set_baudrate(USART3, 115200); // Устанавливаем скорость бит/с 
+    usart_set_databits(USART3, 8); // 8 бит данных
+    usart_set_stopbits(USART3, USART_STOPBITS_1); // 1 стоп-бит
+    usart_set_mode(USART3, USART_MODE_TX_RX); // Режим TX и RX
+    usart_set_parity(USART3, USART_PARITY_NONE); // Без четности
+    usart_set_flow_control(USART3, USART_FLOWCONTROL_NONE); // Без управления потоком
+
+    usart_enable_rx_interrupt(USART3);
+    nvic_enable_irq(NVIC_USART3_IRQ); // Включаем прерывание для USART2
+
+    // Включаем USART3
+    usart_enable(USART3);
 }
 
-// Инициализация всех светодиодов 
-void setup_LED(void){
+
+void setup_LED(void) {
     rcc_periph_clock_enable(RCC_GPIOD);
     gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO15 | GPIO14 | GPIO13 | GPIO12);
 }
 
-void setup_timer(void) {
-    rcc_peripheral_enable_clock(&RCC_APB1ENR, RCC_TIM2);
-    rcc_peripheral_enable_clock(&RCC_AHB1ENR, RCC_GPIOE);
-
-    gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO0);
-    
-    gpio_set_af(GPIOA, GPIO_AF1, GPIO0); // TIM2_CH1
-
-    TIM_CR1(TIM2) &= ~TIM_CR1_CEN; // Отключаем таймер
-    TIM_PSC(TIM2) = 83; // Делитель (для 1мс при 84MHz)
-    TIM_ARR(TIM2) = 0xFFFF; // Автозагрузка
-
-    TIM_CCER(TIM2) |= TIM_CCER_CC1E; // Включаем захват на канале 1
-    TIM_SMCR(TIM2) |= TIM_SMCR_SMS_GM; // Режим захвата
-
-    TIM_DIER(TIM2) |= TIM_DIER_CC1IE; // Разрешаем прерывание от канала 1
-    nvic_enable_irq(NVIC_TIM2_IRQ); // Разрешаем прерывание в NVIC
-
-    TIM_CR1(TIM2) |= TIM_CR1_CEN; // Включаем таймер
-}
+// void led_blink_15(uint32_t tome) {
+//     gpio_set(GPIOD, GPIO15);
+//     for (volatile uint32_t i = 0; i < tome * 1000; i++);
+//     gpio_clear(GPIOD, GPIO15); 
+//     for (volatile uint32_t i = 0; i < tome * 1000; i++); 
+// }
 
 int main(void) {
-    usart_setup(); // Настройка UART
-    setup_timer(); // Настройка таймера
-    setup_LED();   // Инициализация светодиодов
+    uint8_t size_buffer[BUFFER_SIZE]; // Изменяем тип на uint8_t
+    uint32_t index = 0;
+
+    usart2_setup(); // Настройка USART2
+    usart3_setup();
+    setup_LED(); // Настройка LED
 
     while (1) {
-        char number_buffer[20];
-        snprintf(number_buffer, sizeof(number_buffer), "Number: %d\n", 85); // Форматируем число в строку
-        
-        usart_send_string(number_buffer);  // Отправка числа 85 в виде строки
-        
-        for (volatile int i = 0; i < 100000; i++); // Задержка
-    }
+        read_data_UART(size_buffer, &index); // Передаем указатели на массив и индекс
+        usart_send_buffer(size_buffer, index);
+        usart_send_string("\n");
+       // gpio_toggle(GPIOD,GPIO13);
+       //for (volatile int i = 0; i < 1000000; i++);
 
-    return 0;
+    }
 }
