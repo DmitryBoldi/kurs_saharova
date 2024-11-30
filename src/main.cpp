@@ -4,7 +4,7 @@
 #include <libopencm3/cm3/nvic.h>
 #include <stdio.h>
 
-#define BUFFER_SIZE 240
+#define BUFFER_SIZE 10
 
 void read_data_UART(uint8_t *size_buffer, uint32_t *index);
 void usart_send_string(const char *str);
@@ -21,21 +21,10 @@ void read_data_UART(uint8_t *size_buffer, uint32_t *index) {
      for (volatile uint32_t i = 0; i < 500000; i++);
    
 
-
-        // gpio_toggle(GPIOD,GPIO14);
-        // for (volatile int i = 0; i < 1000000; i++); // Задержка
     } else {
         // Обработка переполнения буфера
         snprintf(number_buffer, sizeof(number_buffer), "Error: Buffer full at index: /n");
         usart_send_string(number_buffer);
-
-
-    //   gpio_set(GPIOD, GPIO15);
-    //     for (volatile uint32_t i = 0; i < 5000; i++);
-    //   gpio_clear(GPIOD, GPIO15); 
-    //     for (volatile uint32_t i = 0; i < 5000; i++); 
-
-
         gpio_set(GPIOD,GPIO15);
       
     }
@@ -51,15 +40,8 @@ void usart_send_string(const char *str) {
 void usart_send_buffer(uint8_t *buffer, uint32_t size) {
     for (uint32_t i = 0; i < BUFFER_SIZE; i++) {
         usart_send(USART3, buffer[i]); // Отправка каждого байта
-
-    //   gpio_set(GPIOD, GPIO12);
-    //     for (volatile uint32_t i = 0; i < 5000; i++);
-    //   gpio_clear(GPIOD, GPIO12); 
-    //     for (volatile uint32_t i = 0; i < 5000; i++); 
-     
-
-
         gpio_toggle(GPIOD,GPIO12);
+        for (volatile uint32_t i = 0; i < 500000; i++);
 
     }
 }
@@ -123,25 +105,21 @@ void setup_LED(void) {
     gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO15 | GPIO14 | GPIO13 | GPIO12);
 }
 
-// void led_blink_15(uint32_t tome) {
-//     gpio_set(GPIOD, GPIO15);
-//     for (volatile uint32_t i = 0; i < tome * 1000; i++);
-//     gpio_clear(GPIOD, GPIO15); 
-//     for (volatile uint32_t i = 0; i < tome * 1000; i++); 
-// }
+
 
 int main(void) {
     uint8_t size_buffer[BUFFER_SIZE]; // Изменяем тип на uint8_t
     uint32_t index = 0;
+    int i=0 ;
 
     usart2_setup(); // Настройка USART2
     usart3_setup();
     setup_LED(); // Настройка LED
 
-    while (int i=0 <30) {
+    while (i<30) {
         read_data_UART(size_buffer, &index); // Передаем указатели на массив и индекс
         usart_send_buffer(size_buffer, index);
-        gpio_toggle(GPIOD,GPIO13);
+        gpio_set(GPIOD,GPIO13);
       
 
     }
