@@ -4,7 +4,7 @@
 #include <libopencm3/cm3/nvic.h>
 #include <stdio.h>
 
-#define BUFFER_SIZE 10
+#define BUFFER_SIZE 255
 
 void read_data_UART(uint8_t *size_buffer, uint32_t *index);
 void usart_send_string(const char *str);
@@ -18,14 +18,18 @@ void read_data_UART(uint8_t *size_buffer, uint32_t *index) {
 
 
       gpio_toggle(GPIOD, GPIO14);
-     for (volatile uint32_t i = 0; i < 500000; i++);
+      for (volatile uint32_t i = 0; i < 500000; i++);
+   
    
 
     } else {
         // Обработка переполнения буфера
-        snprintf(number_buffer, sizeof(number_buffer), "Error: Buffer full at index: /n");
+        snprintf(number_buffer, sizeof(number_buffer), "Error: Buffer full");
         usart_send_string(number_buffer);
         gpio_set(GPIOD,GPIO15);
+        for (volatile uint32_t i = 0; i < 500000; i++);
+        // break;
+        
       
     }
 }
@@ -34,6 +38,7 @@ void read_data_UART(uint8_t *size_buffer, uint32_t *index) {
 void usart_send_string(const char *str) {
     while (*str) {
         usart_send(USART3, *str++); // Отправка каждого символа
+        for (volatile uint32_t i = 0; i < 500000; i++);
     }
 }
 
@@ -42,6 +47,7 @@ void usart_send_buffer(uint8_t *buffer, uint32_t size) {
         usart_send(USART3, buffer[i]); // Отправка каждого байта
         gpio_toggle(GPIOD,GPIO12);
         for (volatile uint32_t i = 0; i < 500000; i++);
+       
 
     }
 }
@@ -116,11 +122,11 @@ int main(void) {
     usart3_setup();
     setup_LED(); // Настройка LED
 
-    while (i<30) {
+    while (1) {
         read_data_UART(size_buffer, &index); // Передаем указатели на массив и индекс
         usart_send_buffer(size_buffer, index);
-        gpio_set(GPIOD,GPIO13);
+       gpio_set(GPIOD,GPIO13);
       
 
     }
-}
+}`
